@@ -40,9 +40,11 @@ func main() {
 func serveS3(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	sess := session.New(aws.NewConfig().WithRegion(cfg.region).WithEndpoint(cfg.endpoint).WithS3ForcePathStyle(true))
+	ifModifiedSince, _ := http.ParseTime(r.Header.Get("If-Modified-Since"))
 	req := &s3.GetObjectInput{
-		Bucket: aws.String(cfg.bucket),
-		Key:    aws.String(cfg.keyPrefix + path),
+		Bucket:          aws.String(cfg.bucket),
+		Key:             aws.String(cfg.keyPrefix + path),
+		IfModifiedSince: &ifModifiedSince,
 	}
 	obj, err := s3.New(sess).GetObject(req)
 	if err != nil {
