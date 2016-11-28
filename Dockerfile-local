@@ -1,0 +1,18 @@
+FROM alpine:edge
+MAINTAINER @pjoe
+
+ENV GOPATH=/go PATH=/go/bin:$PATH
+
+RUN apk add --no-cache ca-certificates \
+    && apk --no-cache add --virtual build-dependencies musl-dev go git
+
+RUN mkdir -p /go/src/github.com/pjoe/http-s3-proxy
+WORKDIR /go/src/github.com/pjoe/http-s3-proxy
+
+COPY vendor vendor/
+COPY *.go .
+
+RUN go build
+
+CMD ./http-s3-proxy
+

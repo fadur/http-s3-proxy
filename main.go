@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -46,10 +47,22 @@ func serveS3(w http.ResponseWriter, r *http.Request) {
 		Key:             aws.String(cfg.keyPrefix + path),
 		IfModifiedSince: &ifModifiedSince,
 	}
+	status := 200
 	obj, err := s3.New(sess).GetObject(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		isOk := false
+		if reqerr, ok := err.(awserr.RequestFailure); ok {
+			status = reqerr.StatusCode()
+			if reqerr.StatusCode() == 304 {
+				isOk = true
+			}
+		} else {
+			status = http.StatusInternalServerError
+		}
+		if !isOk {
+			http.Error(w, err.Error(), status)
+			return
+		}
 	}
 	setStrHeader(w, "Cache-Control", obj.CacheControl)
 	setStrHeader(w, "Expires", obj.Expires)
@@ -60,7 +73,10 @@ func serveS3(w http.ResponseWriter, r *http.Request) {
 	setStrHeader(w, "Content-Range", obj.ContentRange)
 	//setStrHeader(w, "Content-Type", obj.ContentType)
 	setTimeHeader(w, "Last-Modified", obj.LastModified)
-	io.Copy(w, obj.Body)
+	w.WriteHeader(status)
+	if status == 200 {
+		io.Copy(w, obj.Body)
+	}
 }
 
 func setStrHeader(w http.ResponseWriter, key string, value *string) {
