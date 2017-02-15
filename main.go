@@ -20,6 +20,7 @@ type config struct {
 	region    string
 	bucket    string
 	keyPrefix string
+	appPort   string
 }
 
 var cfg config
@@ -30,12 +31,16 @@ func main() {
 		region:    os.Getenv("AWS_DEFAULT_REGION"),
 		bucket:    os.Getenv("AWS_S3_BUCKET"),
 		keyPrefix: os.Getenv("AWS_S3_KEY_PREFIX"),
+		appPort:   os.Getenv("APP_PORT"),
+	}
+	if cfg.appPort == "" {
+		cfg.appPort = "80"
 	}
 	http.HandleFunc("/", serveS3)
 	http.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello")
 	})
-	http.ListenAndServe(":80", nil)
+	http.ListenAndServe(":"+cfg.appPort, nil)
 }
 
 func serveS3(w http.ResponseWriter, r *http.Request) {
