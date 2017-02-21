@@ -40,7 +40,11 @@ func main() {
 	http.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello")
 	})
-	http.ListenAndServe(":"+cfg.appPort, nil)
+	fmt.Printf("http-s3-proxy listening on port %s\n", cfg.appPort)
+	err := http.ListenAndServe(":"+cfg.appPort, nil)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func serveS3(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +69,7 @@ func serveS3(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusInternalServerError
 		}
 		if !isOk {
+			fmt.Printf("Error for '%s': %d, %s\n", path, status, err.Error())
 			http.Error(w, err.Error(), status)
 			return
 		}
